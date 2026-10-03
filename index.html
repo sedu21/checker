@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>문항 오류 점검</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --ink: #1c2540;
+  --ink-soft: #55607a;
+  --line: #d9dee8;
+  --accent: #1c2540;
+  --accent-ink: #ffffff;
+  --red: #c4302b;
+  --red-bg: #fdecea;
+  --amber: #9a6500;
+  --amber-bg: #fff4d6;
+  --blue: #2a5bd7;
+  --blue-bg: #e8effe;
+  --green: #1f7a52;
+  --green-bg: #e5f5ed;
+  --serif: "Noto Serif KR", "Nanum Myeongjo", "Apple SD Gothic Neo", serif;
+  --sans: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151d; --panel: #1b2030; --ink: #e8ebf3; --ink-soft: #9aa4bd; --line: #2d354b;
+    --accent: #e8ebf3; --accent-ink: #12151d;
+    --red: #ff7b72; --red-bg: #3a1f22; --amber: #f0b84a; --amber-bg: #3a2f14;
+    --blue: #8fb0ff; --blue-bg: #1d2a4d; --green: #5fd19a; --green-bg: #15322a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151d; --panel: #1b2030; --ink: #e8ebf3; --ink-soft: #9aa4bd; --line: #2d354b;
+  --accent: #e8ebf3; --accent-ink: #12151d;
+  --red: #ff7b72; --red-bg: #3a1f22; --amber: #f0b84a; --amber-bg: #3a2f14;
+  --blue: #8fb0ff; --blue-bg: #1d2a4d; --green: #5fd19a; --green-bg: #15322a;
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.65; }
+button, textarea, select, input { font: inherit; color: inherit; }
+button:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-visible, .drop:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+header.top { max-width: 1180px; margin: 0 auto; padding: 28px 20px 8px; }
+header.top h1 { font-family: var(--serif); font-size: 28px; line-height: 1.3; margin: 0 0 6px; letter-spacing: -0.01em; }
+header.top p { margin: 0; color: var(--ink-soft); max-width: 62ch; }
+
+main { max-width: 1180px; margin: 0 auto; padding: 16px 20px 60px; display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.panel + .panel { margin-top: 16px; }
+.panel h2 { font-family: var(--serif); font-size: 17px; margin: 0 0 12px; }
+
+.drop { border: 2px dashed var(--line); border-radius: 10px; padding: 22px 16px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; background: transparent; width: 100%; display: block; }
+.drop:hover, .drop.over { border-color: var(--blue); background: var(--blue-bg); }
+.drop strong { display: block; font-size: 16px; margin-bottom: 4px; }
+.drop span { color: var(--ink-soft); font-size: 13.5px; }
+kbd { font-family: var(--sans); font-size: 12.5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; background: var(--bg); }
+
+.thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; margin-top: 14px; }
+.thumb { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.thumb img { display: block; width: 100%; height: 130px; object-fit: cover; object-position: top; }
+.thumb .cap { font-size: 12px; padding: 4px 8px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thumb button { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(20,24,36,.78); color: #fff; cursor: pointer; font-size: 15px; line-height: 1; }
+.thumb button:hover { background: var(--red); }
+
+.field { margin-top: 12px; }
+.field label { display: block; font-size: 13.5px; font-weight: 500; margin-bottom: 4px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+select, textarea, input[type="text"] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; background: var(--panel); }
+textarea { resize: vertical; min-height: 64px; }
+.hint { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+
+.btn { border: 0; border-radius: 8px; padding: 12px 18px; cursor: pointer; font-weight: 700; background: var(--accent); color: var(--accent-ink); width: 100%; font-size: 15.5px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; width: auto; padding: 8px 14px; font-size: 14px; }
+.btn.ghost:hover { border-color: var(--ink-soft); }
+.btn.stop { background: var(--red); color: #fff; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+.status { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 8px; background: var(--blue-bg); color: var(--blue); font-size: 14px; margin-bottom: 14px; }
+.status.err { background: var(--red-bg); color: var(--red); }
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+
+.empty { text-align: center; padding: 48px 20px; color: var(--ink-soft); }
+.empty h3 { font-family: var(--serif); color: var(--ink); margin: 0 0 8px; font-size: 18px; }
+.empty ul { text-align: left; display: inline-block; margin: 12px 0 0; padding-left: 18px; }
+
+.tally { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.chip { border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 500; border: 1px solid transparent; }
+.chip.high { background: var(--red-bg); color: var(--red); }
+.chip.mid { background: var(--amber-bg); color: var(--amber); }
+.chip.low { background: var(--blue-bg); color: var(--blue); }
+.chip.ok { background: var(--green-bg); color: var(--green); }
+
+.issue { border: 1px solid var(--line); border-left-width: 5px; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; background: var(--panel); }
+.issue.high { border-left-color: var(--red); }
+.issue.mid { border-left-color: var(--amber); }
+.issue.low { border-left-color: var(--blue); }
+.issue .head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.issue .qno { font-family: var(--serif); font-size: 18px; font-weight: 700; }
+.issue .sev { font-size: 12.5px; font-weight: 700; padding: 1px 9px; border-radius: 999px; }
+.issue.high .sev { background: var(--red-bg); color: var(--red); }
+.issue.mid .sev { background: var(--amber-bg); color: var(--amber); }
+.issue.low .sev { background: var(--blue-bg); color: var(--blue); }
+.issue .cat { color: var(--ink-soft); font-size: 13.5px; }
+.issue blockquote { margin: 6px 0 8px; padding: 6px 10px; background: var(--bg); border-radius: 6px; font-size: 13.5px; color: var(--ink-soft); white-space: pre-wrap; }
+.issue p { margin: 6px 0; white-space: pre-wrap; }
+.issue .lab { font-weight: 700; margin-right: 6px; }
+.issue .fix { background: var(--green-bg); border-radius: 6px; padding: 8px 10px; }
+.issue .fix .lab { color: var(--green); }
+
+.summary { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; background: var(--panel); white-space: pre-wrap; }
+.summary h3 { font-family: var(--serif); margin: 0 0 6px; font-size: 16px; }
+.oklist { font-size: 13.5px; color: var(--ink-soft); margin: 4px 0 12px; }
+.warn { font-size: 13px; color: var(--ink-soft); border-top: 1px solid var(--line); margin-top: 18px; padding-top: 12px; }
+.theme { position: absolute; right: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>지필고사 문항 오류 점검</h1>
+  <p>문항을 캡처해서 붙여넣거나 PDF를 올리면, 정답 오류·복수정답·발문 모호성·오탈자 등 이의제기 소지가 있는 부분을 찾아드립니다.</p>
+</header>
+
+<main>
+  <section>
+    <div class="panel">
+      <h2>1. 문항 넣기</h2>
+      <button type="button" class="drop" id="drop" aria-label="파일 선택 또는 이미지 붙여넣기 영역">
+        <strong>여기를 클릭하거나 파일을 끌어다 놓기</strong>
+        <span>화면 캡처 후 <kbd>Ctrl</kbd> + <kbd>V</kbd> (Mac은 <kbd>⌘</kbd> + <kbd>V</kbd>) 로 바로 붙여넣기 · PDF·이미지 파일</span>
+      </button>
+      <input type="file" id="file" accept="application/pdf,image/*" multiple hidden>
+      <div class="thumbs" id="thumbs" aria-live="polite"></div>
+      <div class="hint" id="thumbHint"></div>
+    </div>
+
+    <div class="panel">
+      <h2>2. 시험 정보 (선택)</h2>
+      <div class="row2">
+        <div class="field" style="margin-top:0">
+          <label for="level">학교급</label>
+          <select id="level"><option>고등학교</option><option>중학교</option></select>
+        </div>
+        <div class="field" style="margin-top:0">
+          <label for="subject">과목</label>
+          <input type="text" id="subject" placeholder="예: 수학Ⅰ, 통합과학">
+        </div>
+      </div>
+      <div class="field">
+        <label for="scope">출제 범위·성취기준</label>
+        <textarea id="scope" placeholder="예: 2단원 지수함수와 로그함수 (교과서 p.40~75)"></textarea>
+      </div>
+      <div class="field">
+        <label for="key">정답표·배점 (있으면)</label>
+        <textarea id="key" placeholder="예: 1-③, 2-⑤, 3-① ... / 서답형 1번 4점"></textarea>
+        <div class="hint">정답표가 있으면 정답이 맞는지 대조해 드립니다. 없으면 직접 풀어서 확인합니다.</div>
+      </div>
+      <div class="field">
+        <label for="extra">추가 요청</label>
+        <textarea id="extra" placeholder="예: 서답형 채점 기준도 같이 봐주세요."></textarea>
+      </div>
+      <div class="actions" style="flex-direction:column">
+        <button type="button" class="btn" id="run" disabled>오류 점검 시작</button>
+        <button type="button" class="btn stop" id="stop" hidden>중단</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="panel" id="out" aria-live="polite">
+      <div class="empty" id="empty">
+        <h3>결과가 여기에 표시됩니다</h3>
+        <div>이렇게 점검합니다.</div>
+        <ul>
+          <li>문항을 직접 풀어 정답이 맞는지, 정답이 하나뿐인지</li>
+          <li>발문·조건·자료(표, 그래프, 그림)의 모순과 누락</li>
+          <li>선지 간 중복, 표기 통일, 오탈자·맞춤법</li>
+          <li>교육과정 범위를 벗어난 내용</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var MAX_ITEMS = 40;
+  var MAX_PDF_PAGES = 30;
+  var items = [];           // {id, blob, url, label, text}
+  var seq = 0;
+  var sample = null;
+  var maxPerCall = 4;
+  var imagesOk = true;
+  var running = false;
+  var ctl = null;
+  var batches = [];         // array of parsed object arrays per batch
+
+  var $ = function (id) { return document.getElementById(id); };
+  var drop = $("drop"), fileInput = $("file"), thumbs = $("thumbs"), thumbHint = $("thumbHint");
+  var runBtn = $("run"), stopBtn = $("stop"), out = $("out");
+
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+
+  /* ---------- Claude availability ---------- */
+  (async function init() {
+    try {
+      sample = window.claude ? await window.claude.use("sample") : null;
+      if (sample) {
+        var lim = await sample.limits().catch(function () { return null; });
+        if (lim && lim.images) { maxPerCall = Math.max(1, Math.min(4, lim.images.maxCount)); }
+        else { imagesOk = false; }
+      }
+    } catch (e) { sample = null; }
+    if (!sample) {
+      showStatus("이 화면에서는 Claude 분석을 사용할 수 없습니다. claude.ai에서 로그인한 상태로 열어 주세요.", true);
+    } else if (!imagesOk) {
+      showStatus("이 화면에서는 이미지 분석이 지원되지 않아 PDF의 텍스트만 점검할 수 있습니다.", true);
+    }
+    refresh();
+  })();
+
+  /* ---------- Input handling ---------- */
+  drop.addEventListener("click", function () { fileInput.click(); });
+  fileInput.addEventListener("change", function () { addFiles(fileInput.files); fileInput.value = ""; });
+  ["dragenter", "dragover"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("over"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("over"); });
+  });
+  drop.addEventListener("drop", function (e) { if (e.dataTransfer) addFiles(e.dataTransfer.files); });
+  document.addEventListener("dragover", function (e) { e.preventDefault(); });
+  document.addEventListener("drop", function (e) {
+    if (e.target !== drop && !drop.contains(e.target)) { e.preventDefault(); if (e.dataTransfer) addFiles(e.dataTransfer.files); }
+  });
+
+  document.addEventListener("paste", function (e) {
+    var cd = e.clipboardData;
+    if (!cd) return;
+    var files = [];
+    for (var i = 0; i < cd.items.length; i++) {
+      var it = cd.items[i];
+      if (it.kind === "file" && (it.type.indexOf("image/") === 0 || it.type === "application/pdf")) {
+        var f = it.getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (files.length) { e.preventDefault(); addFiles(files, true); }
+  });
+
+  async function addFiles(fileList, pasted) {
+    var files = Array.prototype.slice.call(fileList || []);
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (items.length >= MAX_ITEMS) { showStatus("한 번에 최대 " + MAX_ITEMS + "장까지 넣을 수 있습니다.", true); break; }
+      if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
+        await addPdf(f);
+      } else if (f.type.indexOf("image/") === 0) {
+        var label = pasted || !f.name || /^image\./i.test(f.name) ? "캡처 " + (items.filter(function (x) { return x.kind === "shot"; }).length + 1) : f.name;
+        pushItem({ blob: f, label: label, text: "", kind: "shot" });
+      }
+    }
+    refresh();
+  }
+
+  function pushItem(o) {
+    o.id = ++seq;
+    o.url = URL.createObjectURL(o.blob);
+    items.push(o);
+  }
+
+  async function addPdf(file) {
+    if (!window.pdfjsLib) { showStatus("PDF 처리 모듈을 불러오지 못했습니다. 페이지를 새로고침하거나 캡처 이미지로 넣어 주세요.", true); return; }
+    showStatus("PDF를 읽는 중… (" + file.name + ")");
+    try {
+      var buf = await file.arrayBuffer();
+      var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      var n = Math.min(pdf.numPages, MAX_PDF_PAGES);
+      for (var p = 1; p <= n; p++) {
+        if (items.length >= MAX_ITEMS) break;
+        var page = await pdf.getPage(p);
+        var vp = page.getViewport({ scale: 1.7 });
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.floor(vp.width);
+        canvas.height = Math.floor(vp.height);
+        await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+        var blob = await new Promise(function (res) { canvas.toBlob(res, "image/jpeg", 0.88); });
+        var tc = await page.getTextContent();
+        var text = tc.items.map(function (t) { return t.str; }).join(" ").replace(/\s+/g, " ").trim();
+        pushItem({ blob: blob, label: shortName(file.name) + " p." + p, text: text, kind: "pdf" });
+        refresh();
+      }
+      if (pdf.numPages > n) showStatus("PDF가 길어 앞 " + n + "쪽만 불러왔습니다. 나머지는 따로 나눠서 올려 주세요.", true);
+      else clearStatus();
+    } catch (err) {
+      showStatus("PDF를 읽지 못했습니다. 암호가 걸려 있거나 손상된 파일일 수 있어요. 캡처 이미지로 넣어 보세요.", true);
+    }
+  }
+
+  function shortName(n) { return n.length > 18 ? n.slice(0, 16) + "…" : n; }
+
+  function refresh() {
+    thumbs.textContent = "";
+    items.forEach(function (it) {
+      var d = document.createElement("div"); d.className = "thumb";
+      var img = document.createElement("img"); img.src = it.url; img.alt = it.label;
+      var cap = document.createElement("div"); cap.className = "cap"; cap.textContent = it.label;
+      var b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", it.label + " 삭제"); b.textContent = "×";
+      b.addEventListener("click", function () {
+        URL.revokeObjectURL(it.url);
+        items = items.filter(function (x) { return x.id !== it.id; });
+        refresh();
+      });
+      d.appendChild(img); d.appendChild(cap); d.appendChild(b);
+      thumbs.appendChild(d);
+    });
+    thumbHint.textContent = items.length ? items.length + "장 준비됨 · 순서대로 분석합니다." : "";
+    runBtn.disabled = running || !sample || !items.length;
+  }
+
+  /* ---------- Status ---------- */
+  var statusEl = null;
+  function showStatus(msg, isErr, spin) {
+    clearStatus();
+    statusEl = document.createElement("div");
+    statusEl.className = "status" + (isErr ? " err" : "");
+    if (spin || (!isErr)) { var s = document.createElement("span"); s.className = "spinner"; statusEl.appendChild(s); }
+    var t = document.createElement("span"); t.textContent = msg; statusEl.appendChild(t);
+    out.insertBefore(statusEl, out.firstChild);
+  }
+  function clearStatus() { if (statusEl && statusEl.parentNode) statusEl.parentNode.removeChild(statusEl); statusEl = null; }
+
+  /* ---------- Prompt ---------- */
+  function buildPrompt(group, idx, total) {
+    var lv = $("level").value, sub = $("subject").value.trim(), scope = $("scope").value.trim(),
+        key = $("key").value.trim(), extra = $("extra").value.trim();
+    var p = [];
+    p.push("당신은 한국 " + lv + " 지필고사 문항을 검토하는 베테랑 교사이자 출제 검토위원입니다. 첨부된 이미지는 시험지의 일부입니다(" + total + "묶음 중 " + (idx + 1) + "번째, 이미지 순서 = 아래 나열 순서).");
+    p.push("");
+    p.push("[시험 정보]");
+    p.push("- 학교급: " + lv);
+    p.push("- 과목: " + (sub || "(미입력 — 문항 내용으로 판단)"));
+    if (scope) p.push("- 출제 범위·성취기준: " + scope);
+    if (key) p.push("- 교사가 제공한 정답표·배점:\n" + key);
+    if (extra) p.push("- 추가 요청: " + extra);
+    p.push("");
+    p.push("[이미지 목록과 (PDF인 경우) 추출된 텍스트 — 텍스트는 OCR 성격이라 수식·기호가 깨질 수 있으니 이미지를 우선 신뢰하세요]");
+    group.forEach(function (it, i) {
+      p.push((i + 1) + ") " + it.label + (it.text ? "\n   추출 텍스트: " + it.text.slice(0, 3500) : ""));
+    });
+    p.push("");
+    p.push("[점검 방법]");
+    p.push("1. 보이는 모든 문항을 직접 풀어서 정답을 스스로 도출한 뒤, 제공된 정답표나 문항에 표시된 정답과 대조하세요. 정답표가 없으면 도출한 정답을 근거로 문제 여부를 판단하세요.");
+    p.push("2. 다음 유형의 오류를 찾으세요: 정답 오류 / 복수정답 / 정답 없음 / 발문(‘옳은 것’·‘옳지 않은 것’ 혼동, 모호한 표현) / 조건 누락·모순 / 수치·계산·단위 오류 / 자료(표·그래프·그림)와 문항·선지의 불일치 / 선지 간 중복·포함 관계·길이·형식 불균형 / 오탈자·띄어쓰기·맞춤법·표기 불일치 / 교육과정 범위 이탈 / 배점·문항 번호 누락·중복 / 교과서 용어·개념과의 불일치 / 서답형의 채점 기준 모호성.");
+    p.push("3. ‘이의제기가 들어올 수 있는가’를 기준으로 심각도를 매기세요. high = 정답 오류·복수정답·정답 없음처럼 채점에 영향, mid = 발문·조건·자료의 모호함이나 모순, low = 오탈자·표기·형식.");
+    p.push("4. 이미지가 잘려서 문항의 일부만 보이면 그 문항은 ‘판독 불가/일부만 보임’으로 처리하고 추측해서 오류로 단정하지 마세요. 글자가 흐려 읽기 어려운 부분도 마찬가지입니다. 확신이 없으면 problem에 ‘확인 필요’라고 쓰고 이유를 적으세요.");
+    p.push("5. 오류가 없는 문항은 굳이 설명하지 말고 ok 줄로만 표시하세요. 억지로 오류를 만들어내지 마세요.");
+    p.push("");
+    p.push("[출력 형식 — 반드시 지킬 것]");
+    p.push("한 줄에 JSON 객체 하나씩(줄바꿈으로 구분), 다른 설명·마크다운·코드블록 금지. 사용할 수 있는 줄은 세 가지입니다.");
+    p.push('{"type":"issue","q":"7번","severity":"high|mid|low","category":"정답 오류","quote":"문제 부분 원문을 짧게 인용","problem":"무엇이 문제인지 한두 문장","why":"풀이 과정이나 근거(계산·개념)","fix":"구체적인 수정안(수정한 문장·선지·정답 제시)"}');
+    p.push('{"type":"ok","q":"1번"}');
+    p.push('{"type":"summary","text":"이 묶음에서 본 문항 전체에 대한 2~3문장 총평"}');
+    p.push("문항 하나에 문제가 여러 개면 issue 줄을 여러 개 쓰세요. 모든 문자열은 한국어로, 줄바꿈 없이 한 줄로 작성하세요. summary 줄은 맨 마지막에 한 번만 쓰세요.");
+    return p.join("\n");
+  }
+
+  /* ---------- Run ---------- */
+  runBtn.addEventListener("click", run);
+  stopBtn.addEventListener("click", function () { if (ctl) ctl.abort(); });
+
+  async function run() {
+    if (running || !sample || !items.length) return;
+    running = true; batches = []; refresh();
+    runBtn.hidden = true; stopBtn.hidden = false;
+    var groups = [];
+    for (var i = 0; i < items.length; i += maxPerCall) groups.push(items.slice(i, i + maxPerCall));
+    var failed = false;
+    try {
+      for (var g = 0; g < groups.length; g++) {
+        ctl = new AbortController();
+        batches[g] = [];
+        render(false);
+        showStatus("분석 중… (" + (g + 1) + " / " + groups.length + "묶음) 문항을 직접 풀어 확인하느라 1~3분 걸릴 수 있어요.", false, true);
+        var acc = "";
+        try {
+          var opts = {
+            signal: ctl.signal,
+            cache: false,
+            modelTier: "complex",
+            onText: function (u) { acc = u.text; batches[g] = parseLines(acc, false); render(false); }
+          };
+          if (imagesOk) opts.images = groups[g].map(function (x) { return x.blob; });
+          var res = await sample(buildPrompt(groups[g], g, groups.length), opts);
+          batches[g] = parseLines(res.text, true);
+          if (res.truncated) showStatus("답변이 길어 일부가 잘렸습니다. 이미지를 더 적게 나눠서 다시 점검해 보세요.", true);
+        } catch (e) {
+          if (e && e.text) batches[g] = parseLines(e.text, true);
+          failed = handleError(e, g + 1) || failed;
+          if (!e || e.code === "cancelled" || e.code === "not_granted" || e.code === "rate_limited" || e.code === "session_expired") break;
+        }
+      }
+    } finally {
+      running = false; ctl = null;
+      runBtn.hidden = false; stopBtn.hidden = true;
+      if (!failed && statusEl && !statusEl.classList.contains("err")) clearStatus();
+      render(true);
+      refresh();
+    }
+  }
+
+  function handleError(e, n) {
+    var code = e && e.code;
+    var map = {
+      cancelled: null,
+      not_granted: "Claude 사용이 허용되지 않아 점검할 수 없습니다. 다시 시도하면 허용 여부를 물어봅니다.",
+      rate_limited: "요청이 너무 많거나 사용 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.",
+      session_expired: "로그인이 만료되었습니다. claude.ai에 다시 로그인한 뒤 시도해 주세요.",
+      image_rejected: "이미지를 처리하지 못했습니다. 너무 크거나 형식이 맞지 않는 파일이 있을 수 있어요.",
+      refused: "이 입력은 분석할 수 없었습니다. 내용을 바꿔 다시 시도해 주세요.",
+      empty_completion: "결과가 비어 있습니다. 이미지를 나눠서 다시 시도해 주세요.",
+      prompt_too_large: "입력이 너무 깁니다. 이미지·텍스트를 줄여서 다시 시도해 주세요."
+    };
+    if (code === "cancelled") { showStatus("중단했습니다. 지금까지의 결과만 표시합니다.", true); return true; }
+    showStatus(map[code] || (n + "번째 묶음에서 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."), true);
+    return true;
+  }
+
+  /* ---------- Parse ---------- */
+  function parseLines(text, final) {
+    var lines = String(text).replace(/```[a-z]*/gi, "").split("\n");
+    if (!final) lines.pop(); // last line may be incomplete while streaming
+    var res = [];
+    lines.forEach(function (ln) {
+      ln = ln.trim();
+      if (ln.charAt(0) !== "{") return;
+      try { var o = JSON.parse(ln); if (o && o.type) res.push(o); } catch (_) {}
+    });
+    return res;
+  }
+
+  /* ---------- Render ---------- */
+  var SEV = { high: "높음", mid: "중간", low: "낮음" };
+  var SEV_LABEL = { high: "이의제기 위험 높음", mid: "확인 필요", low: "표기·형식" };
+
+  function qnum(q) { var m = String(q || "").match(/\d+/); return m ? parseInt(m[0], 10) : 9999; }
+
+  function render(done) {
+    var all = [].concat.apply([], batches);
+    var issues = [], oks = {}, sums = [], seen = {};
+    all.forEach(function (o) {
+      if (o.type === "issue") {
+        var k = (o.q || "") + "|" + String(o.problem || "").slice(0, 40);
+        if (seen[k]) return; seen[k] = 1;
+        if (!SEV[o.severity]) o.severity = "mid";
+        issues.push(o);
+      } else if (o.type === "ok" && o.q) { oks[o.q] = 1; }
+      else if (o.type === "summary" && o.text) sums.push(o.text);
+    });
+    var hasIssueQ = {}; issues.forEach(function (i) { hasIssueQ[i.q] = 1; });
+    var okList = Object.keys(oks).filter(function (q) { return !hasIssueQ[q]; }).sort(function (a, b) { return qnum(a) - qnum(b); });
+    var order = { high: 0, mid: 1, low: 2 };
+    issues.sort(function (a, b) { return order[a.severity] - order[b.severity] || qnum(a.q) - qnum(b.q); });
+
+    // keep the status bar, rebuild the rest
+    Array.prototype.slice.call(out.children).forEach(function (c) { if (c !== statusEl) out.removeChild(c); });
+
+    if (!issues.length && !okList.length && !sums.length) {
+      if (!done && running) return;
+      if (done) {
+        var e = document.createElement("div"); e.className = "empty";
+        var h = document.createElement("h3"); h.textContent = "표시할 결과가 없습니다";
+        var d = document.createElement("div"); d.textContent = "이미지가 선명한지 확인하고 다시 시도해 보세요.";
+        e.appendChild(h); e.appendChild(d); out.appendChild(e);
+      }
+      return;
+    }
+
+    var tally = document.createElement("div"); tally.className = "tally";
+    ["high", "mid", "low"].forEach(function (s) {
+      var n = issues.filter(function (i) { return i.severity === s; }).length;
+      if (!n) return;
+      var c = document.createElement("span"); c.className = "chip " + s; c.textContent = SEV_LABEL[s] + " " + n + "건"; tally.appendChild(c);
+    });
+    if (okList.length) { var c2 = document.createElement("span"); c2.className = "chip ok"; c2.textContent = "이상 없음 " + okList.length + "문항"; tally.appendChild(c2); }
+    if (!issues.length && done) { var c3 = document.createElement("span"); c3.className = "chip ok"; c3.textContent = "발견된 오류 없음"; tally.appendChild(c3); }
+    out.appendChild(tally);
+
+    if (sums.length && done) {
+      var sm = document.createElement("div"); sm.className = "summary";
+      var sh = document.createElement("h3"); sh.textContent = "총평";
+      var st = document.createElement("div"); st.textContent = sums.join("\n");
+      sm.appendChild(sh); sm.appendChild(st); out.appendChild(sm);
+    }
+
+    issues.forEach(function (o) {
+      var box = document.createElement("article"); box.className = "issue " + o.severity;
+      var head = document.createElement("div"); head.className = "head";
+      var q = document.createElement("span"); q.className = "qno"; q.textContent = o.q || "문항 미상";
+      var sv = document.createElement("span"); sv.className = "sev"; sv.textContent = SEV_LABEL[o.severity];
+      var ct = document.createElement("span"); ct.className = "cat"; ct.textContent = o.category || "";
+      head.appendChild(q); head.appendChild(sv); head.appendChild(ct); box.appendChild(head);
+      if (o.quote) { var bq = document.createElement("blockquote"); bq.textContent = o.quote; box.appendChild(bq); }
+      addLine(box, "문제", o.problem);
+      addLine(box, "근거", o.why);
+      if (o.fix) { var f = addLine(box, "수정 제안", o.fix); f.className = "fix"; }
+      out.appendChild(box);
+    });
+
+    if (okList.length) {
+      var ok = document.createElement("div"); ok.className = "oklist";
+      ok.textContent = "이상 없음: " + okList.join(", ");
+      out.appendChild(ok);
+    }
+
+    if (done) {
+      var acts = document.createElement("div"); acts.className = "actions";
+      var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn ghost"; dl.textContent = "결과 텍스트로 저장";
+      dl.addEventListener("click", function () { saveReport(issues, okList, sums); });
+      acts.appendChild(dl); out.appendChild(acts);
+      var w = document.createElement("div"); w.className = "warn";
+      w.textContent = "AI 점검 결과는 참고용입니다. 특히 수식·그림이 포함된 문항은 지적 내용이 맞는지 출제 교사가 최종 확인해 주세요.";
+      out.appendChild(w);
+    }
+  }
+
+  function addLine(box, label, text) {
+    var p = document.createElement("p");
+    if (!text) { return p; }
+    var l = document.createElement("span"); l.className = "lab"; l.textContent = label;
+    var t = document.createElement("span"); t.textContent = text;
+    p.appendChild(l); p.appendChild(t); box.appendChild(p);
+    return p;
+  }
+
+  async function saveReport(issues, okList, sums) {
+    var L = [];
+    L.push("지필고사 문항 오류 점검 결과");
+    L.push("과목: " + ($("subject").value.trim() || "-") + " / " + $("level").value);
+    L.push("");
+    if (sums.length) { L.push("[총평]"); L.push(sums.join("\n")); L.push(""); }
+    issues.forEach(function (o, i) {
+      L.push((i + 1) + ". " + (o.q || "") + " [" + SEV_LABEL[o.severity] + "] " + (o.category || ""));
+      if (o.quote) L.push("  인용: " + o.quote);
+      if (o.problem) L.push("  문제: " + o.problem);
+      if (o.why) L.push("  근거: " + o.why);
+      if (o.fix) L.push("  수정 제안: " + o.fix);
+      L.push("");
+    });
+    if (okList.length) L.push("이상 없음: " + okList.join(", "));
+    var textOut = L.join("\n");
+    try {
+      var dls = window.claude ? await window.claude.use("downloads") : null;
+      if (dls) { await dls.save({ filename: "문항_오류_점검_결과.txt", data: textOut }); return; }
+    } catch (e) { if (e && e.code === "cancelled") return; }
+    try { await navigator.clipboard.writeText(textOut); showStatus("결과를 클립보드에 복사했습니다.", false); }
+    catch (_) { showStatus("저장할 수 없는 환경입니다. 결과 화면을 직접 복사해 주세요.", true); }
+  }
+})();
+</script>
+</body>
+</html>
